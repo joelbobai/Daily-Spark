@@ -12,10 +12,10 @@ export function QuoteCard({ quote }: QuoteCardProps) {
 
   return (
     <View style={[styles.card, isDarkMode ? styles.cardDark : styles.cardLight]}>
-      <Text style={[styles.quoteText, isDarkMode ? styles.textDark : styles.textLight]}>
+      <Text selectable style={[styles.quoteText, isDarkMode ? styles.textDark : styles.textLight]}>
         “{quote.text}”
       </Text>
-      <Text style={[styles.authorText, isDarkMode ? styles.textMutedDark : styles.textMutedLight]}>
+      <Text selectable style={[styles.authorText, isDarkMode ? styles.textMutedDark : styles.textMutedLight]}>
         — {quote.author}
       </Text>
     </View>

@@ -151,9 +151,9 @@ export default function DailyQuoteScreen() {
               Refresh to build your quote history.
             </Text>
           ) : (
-            historyQuotes.slice(0, 3).map((quote) => (
+            historyQuotes.slice(0, 3).map((quote, index) => (
               <Pressable
-                key={quote.id}
+                key={`${quote.id}-${index}`}
                 onPress={() => setActiveQuote(quote)}
                 style={({ pressed }) => [
                   styles.historyItem,
