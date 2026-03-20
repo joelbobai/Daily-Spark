@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from 'react-native';
 
 import { QuoteCard } from '@/components/QuoteCard';
-import { quotes } from '@/data/quotes';
+import { quotes, type Quote } from '@/data/quotes';
 import { getDayOfYear, getFormattedDate } from '@/utils/dateUtils';
 
 const getDailyQuote = (date: Date) => {
@@ -29,11 +29,37 @@ export default function DailyQuoteScreen() {
   const [activeQuote, setActiveQuote] = useState(() => getDailyQuote(new Date()));
   const [history, setHistory] = useState<string[]>([]);
   const [savedQuoteIds, setSavedQuoteIds] = useState<string[]>([]);
+  const [focusSecondsLeft, setFocusSecondsLeft] = useState(60);
+  const [isFocusRunning, setIsFocusRunning] = useState(false);
 
   const isSaved = savedQuoteIds.includes(activeQuote.id);
+  const focusProgress = ((60 - focusSecondsLeft) / 60) * 100;
+
+  useEffect(() => {
+    if (!isFocusRunning) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setFocusSecondsLeft((currentSeconds) => {
+        if (currentSeconds <= 1) {
+          clearInterval(timer);
+          setIsFocusRunning(false);
+          return 0;
+        }
+
+        return currentSeconds - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isFocusRunning]);
 
   const historyQuotes = useMemo(
-    () => history.map((quoteId) => quotes.find((quote) => quote.id === quoteId)).filter(Boolean),
+    () =>
+      history
+        .map((quoteId) => quotes.find((quote) => quote.id === quoteId))
+        .filter((quote): quote is Quote => Boolean(quote)),
     [history],
   );
 
@@ -72,6 +98,23 @@ export default function DailyQuoteScreen() {
         : [activeQuote.id, ...previous],
     );
   };
+
+  const toggleFocusTimer = () => {
+    if (focusSecondsLeft === 0) {
+      setFocusSecondsLeft(60);
+    }
+
+    setIsFocusRunning((previous) => !previous);
+  };
+
+  const resetFocusTimer = () => {
+    setIsFocusRunning(false);
+    setFocusSecondsLeft(60);
+  };
+
+  const focusTimeLabel = `${String(Math.floor(focusSecondsLeft / 60)).padStart(2, '0')}:${String(
+    focusSecondsLeft % 60,
+  ).padStart(2, '0')}`;
 
   return (
     <View style={[styles.container, isDarkMode ? styles.containerDark : styles.containerLight]}>
@@ -167,6 +210,58 @@ export default function DailyQuoteScreen() {
             ))
           )}
         </View>
+
+        <View style={[styles.panel, isDarkMode ? styles.panelDark : styles.panelLight]}>
+          <Text style={[styles.panelTitle, isDarkMode ? styles.textDark : styles.textLight]}>
+            Permission-free focus minute
+          </Text>
+          <Text style={[styles.panelText, isDarkMode ? styles.subtleTextDark : styles.subtleTextLight]}>
+            Start a 60-second reset timer to sit with your quote, breathe, and refocus. It runs
+            locally and does not ask for notifications, microphone, or background permissions.
+          </Text>
+
+          <View
+            style={[
+              styles.focusTrack,
+              isDarkMode ? styles.focusTrackDark : styles.focusTrackLight,
+            ]}>
+            <View
+              style={[
+                styles.focusFill,
+                { width: `${focusProgress}%` },
+                isDarkMode ? styles.focusFillDark : styles.focusFillLight,
+              ]}
+            />
+          </View>
+
+          <Text style={[styles.focusTime, isDarkMode ? styles.textDark : styles.textLight]}>
+            {focusTimeLabel}
+          </Text>
+
+          <View style={styles.actionsRow}>
+            <Pressable
+              onPress={toggleFocusTimer}
+              style={({ pressed }) => [
+                styles.actionButton,
+                styles.actionButtonAccent,
+                pressed && styles.buttonPressed,
+              ]}>
+              <Text style={[styles.actionText, styles.textLight]}>
+                {isFocusRunning ? 'Pause focus' : focusSecondsLeft === 0 ? 'Restart focus' : 'Start focus'}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={resetFocusTimer}
+              style={({ pressed }) => [
+                styles.actionButton,
+                isDarkMode ? styles.actionButtonDark : styles.actionButtonLight,
+                pressed && styles.buttonPressed,
+              ]}>
+              <Text style={[styles.actionText, isDarkMode ? styles.textDark : styles.textLight]}>Reset</Text>
+            </Pressable>
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -225,6 +320,10 @@ const styles = StyleSheet.create({
     borderColor: '#ffc857',
     backgroundColor: '#ffd47d',
   },
+  actionButtonAccent: {
+    borderColor: '#8b5cf6',
+    backgroundColor: '#8b5cf6',
+  },
   actionButtonDisabled: {
     opacity: 0.45,
   },
@@ -277,6 +376,35 @@ const styles = StyleSheet.create({
   historyText: {
     fontSize: 13,
     lineHeight: 20,
+  },
+  focusTrack: {
+    width: '100%',
+    height: 12,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  focusTrackLight: {
+    backgroundColor: '#ece7ff',
+  },
+  focusTrackDark: {
+    backgroundColor: '#332a52',
+  },
+  focusFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  focusFillLight: {
+    backgroundColor: '#8b5cf6',
+  },
+  focusFillDark: {
+    backgroundColor: '#b79cff',
+  },
+  focusTime: {
+    fontSize: 30,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 1.2,
+    marginTop: 4,
   },
   textLight: {
     color: '#1a1a1a',
